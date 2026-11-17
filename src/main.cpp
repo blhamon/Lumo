@@ -1097,7 +1097,7 @@ void loop() {
   const PowerStatus ps = power_mgr.read();
   const bool on_battery = ps.valid && !ps.vbus_present && !ps.is_charging;
   if (on_battery && g_mode == AppMode::EYES &&
-      now - g_last_interaction_ms > SLEEP_TIMEOUT_MS) {
+      (uint32_t)(millis() - g_last_interaction_ms) > SLEEP_TIMEOUT_MS) {
     goToDeepSleep();
   }
 
