@@ -27,34 +27,20 @@ jobs:
       - name: Compile ESP32-S3 firmware
         run: pio run -e lumo
 
-      - name: Assemble flashable image
+      - name: Verify PlatformIO factory image
         shell: bash
         run: |
           set -euo pipefail
-          OUT=".pio/build/lumo"
-          test -f "$OUT/bootloader.bin"
-          test -f "$OUT/partitions.bin"
-          test -f "$OUT/firmware.bin"
-          # The Arduino ESP32 boot_app0 image is supplied by the framework;
-          # PlatformIO often copies it into the build directory.
-          BOOT_APP="$OUT/boot_app0.bin"
-          if [ ! -f "$BOOT_APP" ]; then
-            BOOT_APP="$(find "$HOME/.platformio/packages" -name boot_app0.bin -print -quit)"
-          fi
-          test -n "$BOOT_APP" && test -f "$BOOT_APP"
+          FACTORY=".pio/build/lumo/firmware.factory.bin"
+          test -s "$FACTORY"
+          python -m esptool --chip esp32s3 image-info "$FACTORY"
           mkdir -p dist
-          python -m esptool --chip esp32s3 merge-bin \
-            --flash_mode qio --flash_freq 80m --flash_size 16MB \
-            -o dist/lumo-astronaut-merged.bin \
-            0x0 "$OUT/bootloader.bin" \
-            0x8000 "$OUT/partitions.bin" \
-            0xe000 "$BOOT_APP" \
-            0x10000 "$OUT/firmware.bin"
+          cp "$FACTORY" dist/lumo-astronaut-factory.bin
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
           name: lumo-astronaut-firmware
-          path: dist/lumo-astronaut-merged.bin
+          path: dist/lumo-astronaut-factory.bin
           if-no-files-found: error
           retention-days: 30
